@@ -98,7 +98,7 @@ namespace SaintsField.Editor.Drawers.DisabledDrawers
             List<bool> allResults = new List<bool>();
            
             ReadOnlyAttribute[] targetAttributes = SerializedUtils.GetAttributesAndDirectParent<ReadOnlyAttribute>(property).attributes;
-            foreach (var targetAttribute in targetAttributes)
+            foreach (var targetAttribute in targetAttributes.Where(_ => _.IsReadOnly)) // ReadOnlyAttribute/DisableIfAttribute
             {
                 (IReadOnlyList<string> errors, IReadOnlyList<bool> boolResults) = Util.ConditionChecker(targetAttribute.ConditionInfos, property, info, target);
 
@@ -172,37 +172,27 @@ namespace SaintsField.Editor.Drawers.DisabledDrawers
             }
 
             List<VisualElement> allPossibleDisable = container.Query<VisualElement>(className: ClassAllowDisable).ToList();
-
+            
             bool curReadOnly = allPossibleDisable.All(each => !each.enabledSelf);
-
-            List<string> errors = new List<string>();
-            // List<bool> nowReadOnlyResult = new List<bool>();
-            bool nowReadOnly = false;
+            
 #if SAINTSFIELD_DEBUG && SAINTSFIELD_DEBUG_READ_ONLY
             Debug.Log($"curReadOnly={curReadOnly}");
 #endif
+            
+            List<string> errors = new List<string>();
+            List<bool> readOnlyResults = new List<bool>();
+            
             object parent = SerializedUtils.GetFieldInfoAndDirectParent(property).parent;
             foreach ((string error, bool readOnly) in visibilityElements.Select(each => IsDisabled(property, info, parent)))
             {
                 if (error != "")
                 {
                     errors.Add(error);
-                    // nowReadOnlyResult.Add(false);
                 }
-                else
-                {
-                    if (readOnly)
-                    {
-#if SAINTSFIELD_DEBUG && SAINTSFIELD_DEBUG_READ_ONLY
-                        Debug.Log($"nowReadOnly=true");
-#endif
-                        nowReadOnly = true;
-                        break;
-                    }
-                }
+                readOnlyResults.Add(readOnly);
             }
-
-            // bool nowReadOnly = nowReadOnlyResult.Any(b => b);
+            
+            bool nowReadOnly = readOnlyResults.Any(each => each);
 
             if (curReadOnly != nowReadOnly)
             {

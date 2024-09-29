@@ -7,6 +7,8 @@ namespace SaintsField
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     public class EnableIfAttribute: ReadOnlyAttribute
     {
+        public override bool IsReadOnly => false;
+        
         public EnableIfAttribute(EMode editorMode, params object[] by) : base(editorMode, by)
         {
         }

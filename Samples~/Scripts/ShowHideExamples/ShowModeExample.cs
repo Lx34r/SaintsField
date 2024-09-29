@@ -11,5 +11,8 @@ namespace SaintsField.Samples.Scripts.ShowHideExamples
 
         [ShowIf(EMode.Edit, nameof(boolValue))] public string showEditAndBool;
         [ShowIf(EMode.Edit), ShowIf(nameof(boolValue))] public string showEditOrBool;
+        
+        [ShowIf(EMode.Play, nameof(boolValue))] public string showPlayAndBool;
+        [ShowIf(EMode.Play), ShowIf(nameof(boolValue))] public string showPlayOrBool;
     }
 }

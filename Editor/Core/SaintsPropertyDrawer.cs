@@ -270,25 +270,25 @@ namespace SaintsField.Editor.Core
 
         private float _labelFieldBasicHeight = EditorGUIUtility.singleLineHeight;
 
-        protected virtual bool GetThisDecoratorVisibility(ShowIfAttribute targetAttribute, SerializedProperty property, FieldInfo info, object target)
+        protected virtual bool GetThisDecoratorVisibility(SerializedProperty property, FieldInfo info, object target)
         {
             return true;
         }
 
         private bool GetVisibility(SerializedProperty property, IEnumerable<SaintsWithIndex> saintsAttributeWithIndexes, object parent)
         {
-            List<bool> showAndResults = new List<bool>();
+            List<(bool showIfAttribute, bool shown)> showAndResults = new List<(bool, bool)>();
             foreach (SaintsWithIndex saintsAttributeWithIndex in saintsAttributeWithIndexes)
             {
                 if (saintsAttributeWithIndex.SaintsAttribute is ShowIfAttribute showIfAttribute)
                 {
                     SaintsPropertyDrawer drawer = GetOrCreateSaintsDrawer(saintsAttributeWithIndex);
-                    showAndResults.Add(drawer.GetThisDecoratorVisibility(showIfAttribute, property, fieldInfo, parent));
+                    showAndResults.Add((showIfAttribute.IsShow, drawer.GetThisDecoratorVisibility(property, fieldInfo, parent)));
                 }
             }
             // Debug.Log($"visibility={string.Join(", ", showAndResults)}");
 
-            return showAndResults.Count == 0 || showAndResults.Any(each => each);
+            return showAndResults.Count == 0 || showAndResults.Any(each => each is { showIfAttribute: true, shown: true }) || showAndResults.All(each => each is { showIfAttribute: false, shown: true });
         }
 
         #region GetPropertyHeight

@@ -96,21 +96,12 @@ namespace SaintsField.Editor.Playa.Renderer
                             Target = fieldWithInfo.Target,
                         });
                         break;
-                    case PlayaEnableIfAttribute enableIfAttribute:
+                    case IReadOnlyAttribute readOnlyAttribute:
                         preCheckInternalInfos.Add(new PreCheckInternalInfo
                         {
-                            Type = PreCheckInternalType.Enable,
-                            ConditionInfos = enableIfAttribute.ConditionInfos,
-                            EditorMode = enableIfAttribute.EditorMode,
-                            Target = fieldWithInfo.Target,
-                        });
-                        break;
-                    case PlayaDisableIfAttribute disableIfAttribute:
-                        preCheckInternalInfos.Add(new PreCheckInternalInfo
-                        {
-                            Type = PreCheckInternalType.Disable,
-                            ConditionInfos = disableIfAttribute.ConditionInfos,
-                            EditorMode = disableIfAttribute.EditorMode,
+                            Type = readOnlyAttribute.IsReadOnly ? PreCheckInternalType.Disable : PreCheckInternalType.Enable,
+                            ConditionInfos = readOnlyAttribute.ConditionInfos,
+                            EditorMode = readOnlyAttribute.EditorMode,
                             Target = fieldWithInfo.Target,
                         });
                         break;
@@ -127,14 +118,8 @@ namespace SaintsField.Editor.Playa.Renderer
                 FillResult(preCheckInternalInfo);
             }
 
-            List<bool> showResults = new List<bool>();
-            // bool hide = false;
-            // no disable attribute: not-disable
-            // any disable attribute is true: disable; otherwise: not-disable
-            bool disable = false;
-            // no enable attribute: enable
-            // any enable attribute is true: enable; otherwise: not-enable
-            bool enable = true;
+            List<(bool showIfAttribute, bool shown)> showAndResults = new List<(bool, bool)>();
+            List<(bool disableIfAttribute, bool disable)> disableAndResults = new List<(bool, bool)>();
 
             foreach (PreCheckInternalInfo preCheckInternalInfo in preCheckInternalInfos.Where(each => each.errors.Count == 0))
             {
@@ -146,8 +131,8 @@ namespace SaintsField.Editor.Playa.Renderer
                         Debug.Log(
                             $"show, count={preCheckInternalInfo.boolResults.Count}, values={string.Join(",", preCheckInternalInfo.boolResults)}");
 #endif
-                        showResults.Add(preCheckInternalInfo.boolResults.Prepend(preCheckInternalInfo.EditorModeResult)
-                            .All(each => each));
+                        showAndResults.Add((true, preCheckInternalInfo.boolResults.Prepend(preCheckInternalInfo.EditorModeResult)
+                            .All(each => each)));
                     }
                         break;
                     case PreCheckInternalType.Hide:
@@ -156,17 +141,8 @@ namespace SaintsField.Editor.Playa.Renderer
                         Debug.Log(
                             $"hide, count={preCheckInternalInfo.boolResults.Count}, values={string.Join(",", preCheckInternalInfo.boolResults)}");
 #endif
-
-                        // Any(empty)=false=!hide=show. But because in ShowIf, empty=true=show, so we need to negate it.
-                        if (preCheckInternalInfo.EditorMode == 0 && preCheckInternalInfo.boolResults.Count == 0)
-                        {
-                            showResults.Add(false);  // don't show
-                        }
-                        else
-                        {
-                            bool willHide = preCheckInternalInfo.boolResults.Prepend(preCheckInternalInfo.EditorModeResult).Any(each => each);
-                            showResults.Add(!willHide);
-                        }
+                        showAndResults.Add((false, !preCheckInternalInfo.boolResults.Prepend(preCheckInternalInfo.EditorModeResult)
+                            .All(each => each)));
                     }
                         break;
                     case PreCheckInternalType.Disable:
@@ -174,20 +150,17 @@ namespace SaintsField.Editor.Playa.Renderer
                         Debug.Log(
                             $"disable, count={preCheckInternalInfo.boolResults.Count}, values={string.Join(",", preCheckInternalInfo.boolResults)}");
 #endif
-                        if (preCheckInternalInfo.boolResults.Count == 0 || preCheckInternalInfo.boolResults.All(each => each))
-                        {
-                            disable = true;
-                        }
+                        disableAndResults.Add((true, preCheckInternalInfo.boolResults.Prepend(preCheckInternalInfo.EditorModeResult)
+                            .All(each => each)));
                         break;
                     case PreCheckInternalType.Enable:
 #if SAINTSFIELD_DEBUG && SAINTSFIELD_DEBUG_SAINTS_EDITOR_DISABLE_ENABLE
                         Debug.Log(
                             $"enable, count={preCheckInternalInfo.boolResults.Count}, values={string.Join(",", preCheckInternalInfo.boolResults)}");
 #endif
-                        if (preCheckInternalInfo.boolResults.Count != 0 && !preCheckInternalInfo.boolResults.Any(each => each))
-                        {
-                            enable = false;
-                        }
+                        // reverse disable
+                        disableAndResults.Add((false, !preCheckInternalInfo.boolResults.Prepend(preCheckInternalInfo.EditorModeResult)
+                            .All(each => each)));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(preCheckInternalInfo.Type), preCheckInternalInfo.Type, null);
@@ -203,8 +176,23 @@ namespace SaintsField.Editor.Playa.Renderer
             }
             else
             {
-                showIfResult = showResults.Count == 0 || showResults.Any(each => each);
-                disableIfResult = disable || !enable;
+                if (showAndResults.Count == 0)
+                {
+                    showIfResult = true;
+                }
+                else
+                {
+                    showIfResult = showAndResults.Any(each => each is { showIfAttribute: true, shown: true }) || showAndResults.All(each => each is { showIfAttribute: false, shown: true });
+                }
+                
+                if (disableAndResults.Count == 0)
+                {
+                    disableIfResult = false;
+                }
+                else
+                {
+                    disableIfResult = disableAndResults.Any(each => each is { disableIfAttribute: true, disable: true }) || disableAndResults.All(each => each is { disableIfAttribute: false, disable: true });
+                }
             }
 
 #if SAINTSFIELD_DEBUG && SAINTSFIELD_DEBUG_SAINTS_EDITOR_SHOW_HIDE

@@ -13,14 +13,14 @@ namespace SaintsField.Editor.Drawers.VisibilityDrawers
     public abstract class VisibilityAttributeDrawer: SaintsPropertyDrawer
     {
         #region IMGUI
-        protected override bool GetThisDecoratorVisibility(ShowIfAttribute targetAttribute, SerializedProperty property, FieldInfo info, object target)
+        protected override bool GetThisDecoratorVisibility(SerializedProperty property, FieldInfo info, object target)
         {
-            (string error, bool shown) = IsShown(targetAttribute, property, info, target);
+            (string error, bool shown) = IsShown(property, info, target);
             _error = error;
             return shown;
         }
 
-        protected abstract (string error, bool shown) IsShown(ShowIfAttribute targetAttribute, SerializedProperty property, FieldInfo info, object target);
+        protected abstract (string error, bool shown) IsShown(SerializedProperty property, FieldInfo info, object target);
 
         private string _error = "";
 
@@ -117,47 +117,34 @@ namespace SaintsField.Editor.Drawers.VisibilityDrawers
             }
 
             bool curShow = container.style.display != DisplayStyle.None;
-
-            bool nowShow;
-            (ShowIfAttribute[] attributes, object parent) = SerializedUtils.GetAttributesAndDirectParent<ShowIfAttribute>(property);
-
-            List<bool> showOrResults = new List<bool>();
-            string error = "";
-            foreach (ShowIfAttribute showIfAttribute in attributes)
+            
+            List<string> errors = new List<string>();
+            List<bool> showResults = new List<bool>();
+            
+            object parent = SerializedUtils.GetFieldInfoAndDirectParent(property).parent;
+            foreach ((string error, bool shown) in visibilityElements.Select(each => IsShown(property, info, parent)))
             {
-                (string error, bool shown) showResult = showIfAttribute.IsShow
-                    ? ShowIfAttributeDrawer.HelperIsShown(showIfAttribute.ConditionInfos, showIfAttribute.EditorMode, property, info, parent)
-                    : HideIfAttributeDrawer.HelperIsShown(showIfAttribute.ConditionInfos, showIfAttribute.EditorMode, property, info, parent);
-
-                if (showResult.error != "")
+                if (error != "")
                 {
-                    error = showResult.error;
-                    break;
+                    errors.Add(error);
                 }
-                showOrResults.Add(showResult.shown);
+                showResults.Add(shown);
             }
-
-            if (error != "")
-            {
-                nowShow = true;
-            }
-            else
-            {
-                Debug.Assert(showOrResults.Count > 0);
-                nowShow = showOrResults.Any(each => each);
-            }
-
+            
+            bool nowShow = showResults.Any(each => each);
+            
             if (curShow != nowShow)
             {
                 container.style.display = nowShow ? DisplayStyle.Flex : DisplayStyle.None;
             }
-
+            
             HelpBox helpBox = container.Q<HelpBox>(NameVisibilityHelpBox(property, index));
+            string joinedError = string.Join("\n\n", errors);
             // ReSharper disable once InvertIf
-            if (helpBox.text != error)
+            if (helpBox.text != joinedError)
             {
-                helpBox.text = error;
-                helpBox.style.display = error == "" ? DisplayStyle.None : DisplayStyle.Flex;
+                helpBox.text = joinedError;
+                helpBox.style.display = joinedError == "" ? DisplayStyle.None : DisplayStyle.Flex;
             }
         }
 

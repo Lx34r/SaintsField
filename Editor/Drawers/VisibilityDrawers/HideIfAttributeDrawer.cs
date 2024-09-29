@@ -10,30 +10,33 @@ namespace SaintsField.Editor.Drawers.VisibilityDrawers
     [CustomPropertyDrawer(typeof(HideIfAttribute))]
     public class HideIfAttributeDrawer: ShowIfAttributeDrawer
     {
-        protected override (string error, bool shown) IsShown(ShowIfAttribute targetAttribute, SerializedProperty property, FieldInfo info, object target)
+        protected override (string error, bool shown) IsShown(SerializedProperty property, FieldInfo info, object target)
         {
-            return HelperIsShown(targetAttribute.ConditionInfos, targetAttribute.EditorMode, property, info, target);
-        }
-
-        public static (string error, bool shown) HelperIsShown(IEnumerable<ConditionInfo> conditionInfos, EMode editorMode, SerializedProperty property, FieldInfo info, object target)
-        {
-            (IReadOnlyList<string> errors, IReadOnlyList<bool> boolResults) = Util.ConditionChecker(conditionInfos, property, info, target);
-
-            if (errors.Count > 0)
+            List<bool> allResults = new List<bool>();
+            
+            ShowIfAttribute[] targetAttributes = SerializedUtils.GetAttributesAndDirectParent<ShowIfAttribute>(property).attributes;
+            foreach (ShowIfAttribute targetAttribute in targetAttributes.Where(_ => !_.IsShow)) // HideIfAttribute
             {
-                return (string.Join("\n\n", errors), true);
-            }
+                (IReadOnlyList<string> errors, IReadOnlyList<bool> boolResults) = Util.ConditionChecker(targetAttribute.ConditionInfos, property, info, target);
 
-            // editor || or, Any(empty)=false=!hide=show. But because in ShowIf, empty=true=show, so we need to negate it.
-            if (editorMode == 0 && boolResults.Count == 0)
-            {
-                return ("", false);  // don't show
+                if (errors.Count > 0)
+                {
+                    return (string.Join("\n\n", errors), false); // don't show
+                }
+                
+                bool editorModeOk = Util.ConditionEditModeChecker(targetAttribute.EditorMode);
+                // And Mode; empty=true, but we won't get empty here
+                bool boolResultsOk = boolResults.Append(editorModeOk).All(each => each);
+                allResults.Add(boolResultsOk);
             }
-
-            // this will be false if user does not pass it.
-            bool editorModeOk = Util.ConditionEditModeChecker(editorMode);
-            bool isHidden = boolResults.Prepend(editorModeOk).Any(each => each);
-            return ("",  !isHidden);
+            
+            // Or Mode
+            bool truly = allResults.Any(each => each);
+            
+#if SAINTSFIELD_DEBUG && SAINTSFIELD_DEBUG_SHOW_HIDE
+            UnityEngine.Debug.Log($"{property.name} final={truly}/ars={string.Join(",", allResults)}");
+#endif
+            return ("", !truly); // reverse
         }
     }
 }

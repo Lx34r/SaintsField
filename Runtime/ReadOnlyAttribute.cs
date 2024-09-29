@@ -9,15 +9,14 @@ namespace SaintsField
 {
     [Conditional("UNITY_EDITOR")]
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
-    public class ReadOnlyAttribute: PropertyAttribute, ISaintsAttribute
+    public class ReadOnlyAttribute: PropertyAttribute, ISaintsAttribute, IReadOnlyAttribute
     {
         public SaintsAttributeType AttributeType => SaintsAttributeType.Other;
         public string GroupBy => "";
 
-        // ReSharper disable InconsistentNaming
-        public readonly IReadOnlyList<ConditionInfo> ConditionInfos;
-        public readonly EMode EditorMode;
-        // ReSharper enable InconsistentNaming
+        public IReadOnlyList<ConditionInfo> ConditionInfos { get; }
+        public EMode EditorMode { get; }
+        public virtual bool IsReadOnly => true;
 
         public ReadOnlyAttribute(params object[] by): this(EMode.Edit | EMode.Play, by)
         {

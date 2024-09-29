@@ -15,9 +15,13 @@ namespace SaintsField.Samples.Scripts.SaintsEditor
 
         [PlayaHideIf(EMode.Edit)] public int[] hideEdit;
         [PlayaHideIf(EMode.Play)] public int[] hidePlay;
+        [PlayaHideIf(EMode.Play, nameof(boolValue))] public int[] hidePlayAndStatic;
+        [PlayaHideIf(EMode.Play), PlayaHideIf(nameof(boolValue))] public int[] hidePlayOrStatic;
         [PlayaShowIf(EMode.Edit)] public int[] showEdit;
         [PlayaShowIf(EMode.Play)] public int[] showPlay;
-
+        [PlayaHideIf(EMode.Edit, nameof(boolValue))] public int[] hideEditAndStatic;
+        [PlayaHideIf(EMode.Edit), PlayaHideIf(nameof(boolValue))] public int[] hideEditOrStatic;
+        
         [ShowInInspector, PlayaHideIf(nameof(boolValue))] public const float HideIfConst = 3.14f;
         [ShowInInspector, PlayaShowIf(nameof(boolValue))] public const float ShowIfConst = 3.14f;
         [ShowInInspector, PlayaHideIf(EMode.Edit)] public const float HideEditConst = 3.14f;

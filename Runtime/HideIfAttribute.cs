@@ -12,7 +12,7 @@ namespace SaintsField
         {
         }
 
-        public HideIfAttribute(params object[] orCallbacks) : base(0, orCallbacks)
+        public HideIfAttribute(params object[] orCallbacks) : base(orCallbacks)
         {
         }
     }

@@ -7,13 +7,12 @@ using SaintsField.Condition;
 namespace SaintsField.Playa
 {
     [Conditional("UNITY_EDITOR")]
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Property)]
-    public class PlayaDisableIfAttribute: Attribute, IPlayaAttribute
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Property, AllowMultiple = true)]
+    public class PlayaDisableIfAttribute: Attribute, IPlayaAttribute, IReadOnlyAttribute
     {
-        // ReSharper disable InconsistentNaming
-        public readonly IReadOnlyList<ConditionInfo> ConditionInfos;
-        public readonly EMode EditorMode;
-        // ReSharper enable InconsistentNaming
+        public IReadOnlyList<ConditionInfo> ConditionInfos { get; }
+        public EMode EditorMode { get; }
+        public virtual bool IsReadOnly => true;
 
         public PlayaDisableIfAttribute(EMode editorMode, params object[] by)
         {

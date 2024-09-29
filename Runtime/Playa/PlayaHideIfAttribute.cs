@@ -13,7 +13,7 @@ namespace SaintsField.Playa
         {
         }
 
-        public PlayaHideIfAttribute(params object[] orCallbacks): base(0, orCallbacks)
+        public PlayaHideIfAttribute(params object[] orCallbacks): base(orCallbacks)
         {
         }
     }
